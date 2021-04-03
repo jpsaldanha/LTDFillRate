@@ -1,0 +1,113 @@
+---
+title: "FRBtstrapNotes"
+author: "John Saldanha"
+date: "2/1/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Documented here various code useful in  constructing 
+## the Fill Rate Bootstrap Algorithm and experiments 
+
+We are going to set the working directory as:
+# Set the working directory
+setwd("/Users/beuser/Documents/Work/Research/Solo Research/Bootstrap Research/
+Bootstrap Fill Rate/") 
+
+We read in distribution parameters inputs
+```{r}
+ExpInputs<-read.csv("ExpInputs.csv")
+ExpInputs[1,3] #pick out individual experimental inputs
+```
+
+
+#BELOW ARE ALL THE CODE USED IN THE BOOTSTRAP FR ALGORITHM AND EXPERIMENTS VERBATIM
+
+# Use a fixed random seed to replicate the experiments
+set.seed(931971)
+
+# From https://stackoverflow.com/questions/11530010/how-to-simulate-bimodal-distribution
+# Function to create a bimodal distribution
+mu1 <- 10; mu2 <- 20; sig1 <- 3; sig2 <- 3; pi <- 0.5 
+bimodDistFunc <- function (n,pi, mu1, mu2, sig1, sig2) {
+  y0 <- rgamma(n,mu1^2/sig1^2, mu1/sig1^2)
+  y1 <- rnorm(n,mean=mu2, sd = sig2)
+  
+  pct <- rbinom(n,size=1,prob=pi)
+  y <- y0*(1 - pct) + y1*pct 
+}
+
+bimodalData <- bimodDistFunc(n=100,pi,mu1,mu2, sig1,sig2)
+hist(bimodalData)
+
+#Lognormal Distributions
+ln<-rlnorm(10E6,meanlog=4.585559829,sdlog=0.1980422) 
+hist(lognorm)
+mean(lognorm)
+
+#Example of sumproduct
+x<-c(1,2,3,4) #create a vector x
+y<-c(4,3,2,1) #create a vector y
+z<-sum(x*y) #sumproduct
+A<-matrix(1:9,nrow = 3,ncol = 3,byrow = TRUE) #create 3x3 matrix, values in rows
+B<-matrix(9:1,nrow = 3,ncol = 3,byrow = TRUE) #create 3x3 matrix, values in cols
+sum(A[,1]*B[,3]) #sumproduct of columns
+B[,3] #reference a col
+
+#Pick a random sample of size n_\tilde{X}
+tildeX<-rlnorm(24,meanlog=4.585559829,sdlog=0.1980422) #random draw of n_\tilde{X} for LTD data \tilde{X}
+
+BtSmplX<-replicate(5,sort(sample(tildeX,size=24,replace = TRUE))) #Bootstrap sample of tilde X
+
+###### FIXED Q FILL RATE ALGORITHM ######
+
+library(Rfast) #Load library to find nth smallest value in list
+
+#Inputs
+P2<-0.98 #Fill rate target
+Q<-1000 #Fixed order quantity
+nX<-24 #no. of LTD data
+#ln the lsit of random 
+
+#lnS<-sort(ln) #sorted LTD data
+
+# Define a function to estimate the expected shorts for every \tilde{X}
+ExpShort<-function(x,n)
+  {
+    short<-1:n
+    for (i in 1:n)
+      {
+        short[i]<-((sum(x[i:n])-x[i]*(n-i+1))/n)*sd(x)
+      }
+    return(short)
+  }
+
+#es<-ExpShort(lnS,nX) #Trying the expected shorts function on an atomic vector
+
+P2lst1<-1-(es/Q) #calculate the P2 for all LTD
+P2lst2<-abs(P2-(1-(es/Q))) #calculate the diff of LTD P2 from target fill rate
+
+small2<-nth(P2lst2, 2, descending = F) #2nd smallest diff of LTD P2 from target fill rate
+small1<-nth(P2lst2, 1, descending = F) #smallest diff of LTD P2 from target fill rate
+
+small1pos<-match(small1,P2lst2) #position of smallest P2 diff
+small2pos<-match(small2,P2lst2) #position of 2nd smallest P2 diff
+
+if (small1pos<small2pos) 
+  {
+s_hat<-(((P2-P2lst1[small1pos])*(lnS[small2pos]-lnS[small1pos]))/
+  (P2lst1[small2pos]-P2lst1[small1pos]))+lnS[small1pos]
+  } else 
+  {
+s_hat<-(((P2-P2lst1[small2pos])*(lnS[small1pos]-lnS[small2pos]))/
+  (P2lst1[small1pos]-P2lst1[small2pos]))+lnS[small2pos]
+  }
+
+######        END ALGORITHM       ######
+
+#trial<-data.frame(lnS,P2lst1,P2lst2) #This would join all three data sets into one
+
+esMat<-apply(BtSmplX,MARGIN=2,FUN = ExpShort,n=24)
