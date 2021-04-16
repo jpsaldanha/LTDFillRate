@@ -20,8 +20,7 @@ ExpShort<-function(x,n)
   short<-1:n
   for (i in 1:n)
   {
-    #short[i]<-((sum(x[i:n])-x[i]*(n-i+1))/n)*sd(x)
-    short[i]<-(sum(x[i:n]-x[i])/n)*sd(x)
+    short[i]<-(sum(x[i:n]-x[i])/n)
   }
   return(short)
 }
@@ -32,92 +31,65 @@ BtSmplX<-replicate(B,sort(sample(tildeX,size=nX,replace = TRUE)))
 #Use the ExpShort() function to calc exp. shorts for all B resamples (in cols)
 esMat<-apply(BtSmplX,2,ExpShort,n=nX)
 
-#calculate the P2 for all B resamples of LTD from tildeX
-P2lst<-1-(esMat/Q)
+# Calculate the target shorts (TS)
+TS<-Q*(1-P2)
 
-#calculate the diff of each P2 from target fill rate for all B resamples
-# we take the difference of the target P2 from P2lst so that 
-# values <target P2 are negative and values >target P2 are positive
-# we create two tables one to find the nearest neg value and one to find nearest pos value
-P2NegDifflst<-P2lst-P2
-P2PosDifflst<-P2lst-P2
+# Calculate this difference before the for loop to calculate the s_hat vector
+diff<-TS-esMat
 
-# This table is used to find the minimum P2 value where resample b's P2 > target P2
-P2Pos<-1-(esMat/Q)
-P2Pos[P2Pos<0]<-99
-P2PosMin<-1:B
-for (q in 1:B) {
-  P2PosMin[q]<-max(which(P2Pos[,q]==min(P2Pos[,q])))
+# Function to find the largest negative value in a resample
+maxneg<-function(vec)
+{
+  # Test that at least one ES > TS
+  if(length(which(vec<0))>0){
+    out<-max(which(vec==max(vec[vec<0])))
+  }
+  # If all ES < TS then flag for debugging
+  else {out<-99}
+  return(out)
 }
 
-# Prepare each table to find the position of the P2 value closest to the P2 target
-# Convert all positive values to a v.small neg value to find the largest (neg) number
-P2NegDifflst[P2NegDifflst>0]<--99
-# Convert all negative values to a v.large pos value to find the smallest (pos) number
-P2PosDifflst[P2PosDifflst<0]<-99
-
-
-#Finds the position of the P2 value closest to the P2 target in each b resample
-# Finds the largest negative value (closest to tgt P2) even with duplicates
-NearNeg<-1:B
-for (t in 1:B) {
-  NearNeg[t]<-max(which(P2NegDifflst[,t]==max(P2NegDifflst[,t])))
+# Function to find the smallest positive value in a resample
+minpos<-function(vect)
+{
+  out<-min(which(vect==min(vect[vect>0])))
+  return(out)
 }
-#Remove this next line once confirmed the above code works
-#NearNeg<-apply(P2NegDifflst,2,which.max)
-NearPos<-apply(P2PosDifflst,2,which.min) # Finds the minimum positive value (first in the vector)
 
-#  uses linear interpolation to compute the ROP from the tildeX with P2 closest to target P2
+# Vector of resample indices with smallest ES>TS
+lo<-apply(diff,2,maxneg)
+# Vector of resample indices with smallest ES<TS
+hi<-apply(diff,2,minpos)
+
 #  returns a B length vector of the ROP estimate s_hat for each resample
 s_hat<-1:B # vector to store the estimates ROP for each bootstrap resample
-for (k in 1:B) #iterate over all B resamples
+
+for (k in 1:B) # Iterate over all B resamples
 {
-  #Find the ROP for each bootstrap resample
-  # If all LTD data in the nX sample are identical return the LTD value
-  if (sd(BtSmplX[,k])==0){
+  # 1. The first condition is if at least one of the resample values ES = TS
+  if(length(which(diff[,k]==0))>0)
+  {
+    if (which(diff[, k] == 0)) browser()
+    s_hat[k]<-BtSmplX[which(diff[,k]==0),k]
+  }
+  # 2. The second condition is if all resample values are equal 
+  if(length(which(diff[,k]==TS))==nX)
+  {
     s_hat[k]<-BtSmplX[1,k]
   }
-  #   Note that ALL b resamples cannot have P2 < target P2 as the nX-th value is always ==1.0
-  # If the smallest P2 value in resample b are greater than the target P2 value
-  else if (P2Pos[P2PosMin[k],k]>P2){
-    # If from resample b a P2 == target P2
-    if (P2PosMin[k]>1 && P2Pos[P2PosMin[k]-1,k]==0){
-      s_hat[k]<-BtSmplX[P2PosMin[k]-1,k]
-    }
-    # If from resample b there are duplicates of the smallest P2 > target P2
-    else if (length(which(P2Pos[,k]==min(P2Pos[,k])))>1)
-    {
-      dupl<-length(which(P2Pos[,k]==min(P2Pos[,k])))-1
-      # If duplicates of smallest P2 > target P2 such that one occupies 1st place in vector
-      if (P2PosMin[k]==length(which(P2Pos[,k]==min(P2Pos[,k]))))
-      {
-        s_hat[k]<-BtSmplX[1,k]-(((P2lst[1,k]-P2)*(BtSmplX[P2PosMin[k]+1,k]-
-                  BtSmplX[P2PosMin[k],k]))/(P2lst[P2PosMin[k]+1,k]-P2lst[P2PosMin[k],k]))
-      }
-      # All other duplicates where one does not occupy the 1st place in the vector
-      else 
-      {
-#        if (P2PosMin[k]-dupl-1<1 | P2PosMin[k]-dupl-1>nX) browser() # *** USED FOR DEBUGGIN-REMOVE 
-        s_hat[k]<-BtSmplX[P2PosMin[k],k]-(((BtSmplX[P2PosMin[k],k]-BtSmplX[P2PosMin[k]-dupl-1,k])*
-                  ((P2Pos[P2PosMin[k],k]-P2)*Q))/(esMat[P2PosMin[k]-dupl-1,k]-esMat[P2PosMin[k],k]))
-      }
-    }
-    # If from resample b the smallest P2 > target P2
-    else if (length(which(P2Pos[,k]==min(P2Pos[,k])))==1 && P2PosMin[k]>1) {
-#      if (P2PosMin[k]-1<1 | P2PosMin[k]-1>nX) browser() # *** USED FOR DEBUGGIN-REMOVE 
-      s_hat[k]<-BtSmplX[P2PosMin[k],k]-(((BtSmplX[P2PosMin[k],k]-BtSmplX[P2PosMin[k]-1,k])*
-                ((P2Pos[P2PosMin[k],k]-P2)*Q))/(esMat[P2PosMin[k]-1,k]-esMat[P2PosMin[k],k]))
-    }
-    # If from resample b the smallest P2 > target P2 and is in the 1st position of LTD vector
-    else {
-      s_hat[k]<-BtSmplX[1,k]-(((P2lst[1,k]-P2)*(BtSmplX[2,k]-BtSmplX[1,k]))/
-                                (P2lst[2,k]-P2lst[1,k]))
-    }
+  # 3. The third condition is when all the resample values ES<TS  
+  else if(length(which(diff[,k]<0))==0 && length(which(diff[,k]==TS))<nX)
+  {
+    # This calculates the index of the second smallest bootstrap resample
+    m0<-max(which(BtSmplX[,k]==min(BtSmplX[,k])))+1
+    s_hat[k]<-BtSmplX[1,k]-(((TS-esMat[1,k])*(BtSmplX[m0,k]-BtSmplX[1,k]))/
+                                  (esMat[1,k]-esMat[m0,k]))
   }
-  # For all other occassions where ROP is interpolated from tgt P2 values within the vector 
-  else{
-    s_hat[k]<-(((P2-P2lst[NearNeg[k],k])*(BtSmplX[NearPos[k],k]-BtSmplX[NearNeg[k],k]))/
-                 (P2lst[NearPos[k],k]-P2lst[NearNeg[k],k]))+BtSmplX[NearNeg[k],k]
+  # 4. The fourth condition is when resample ES values are such that ES(1)<TS<ES(nX)
+  else 
+  {
+    s_hat[k]<-BtSmplX[hi[k],k]-(((TS-esMat[hi[k],k])*(BtSmplX[hi[k],k]-BtSmplX[lo[k],k]))/
+                                      (esMat[lo[k],k]-esMat[hi[k],k]))
   }
   if (is.nan(s_hat[k])) browser() # used for tracing the origin of the NaN values
 }
@@ -125,6 +97,7 @@ for (k in 1:B) #iterate over all B resamples
 # Calculate the mean ROP of all the bootstrap resamples' ROP
 s_boot<-mean(s_hat) 
 }
+
 ######        END BOOTSTRAP ALGORITHM       ######
 
 
@@ -145,8 +118,8 @@ P2lvls<-6 #no. of levels of P2
 Q<-100 #Fixed order quantity
 nX<-7 #no. of LTD data
 nXlvls<-4 #no. of nX levels
-B<-50 #no. of bootstrap resamples
-R<-10 #no. of experimental replications
+B<-500#no. of bootstrap resamples
+R<-100 #no. of experimental replications
 Dist<-22 #no. of distributions
 
 #read in distribution parameter and other experimental inputs
@@ -239,11 +212,11 @@ for (d in 1:22){ # Cycle through all the distributions in ExpInputs
         # The Silver (1970) adjustment G(k) - G(k+Q/Sigma_X) = Q/Sigma_X*(1-P_2) to find k
           #Then used in ROP = k*SigmaX + MuX
         for (l in 1:R) {
-          # The optimize function finds the "z" value that 
+          # The optimize function finds the "z" value that minimizes (zeroes) the function finds the closest value to true "z"
           resultN[l]<-optimize(function(z){abs(((dnorm(z)-z*(1-pnorm(z)))-(dnorm(z+Qratio[l])-
                    (z+Qratio[l])*(1-pnorm(z+Qratio[l]))))-
                      normloss[l])},lower=0,upper = 6)$minimum*SigmaX[l]+MuX[l]
-          if (resultN[l]<1)browser()
+          if (resultN[l]<1)browser() # **** FOR DEBUGGING
         }
         sNorm[(d-1)*(P2lvls*nXlvls)+(b-1)*P2lvls+c,]<-t(resultN)
         
