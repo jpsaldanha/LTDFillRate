@@ -7,7 +7,6 @@ erf <- function(x) 2 * pnorm(x * sqrt(2)) - 1
 
 #INITIALIZE INPUTS
 P2<-0.80 #Fill rate target
-P2lvls<-6 #no. of levels of P2
 Q<-19 #Fixed order quantity
 Dist<-11 #no. of distributions (NOT INCLUDING BIMODAL)
 #read in distribution parameter and other experimental inputs

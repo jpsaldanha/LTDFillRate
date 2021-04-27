@@ -84,18 +84,20 @@ for (d in 1:22){ # Cycle through all the distributions in ExpInputs
   
   # Calculates the shape (alpha) and scale (1/beta) parameters of the gamma distribution
   MuX<-mean(TruLTD) # Mean of LTD
-  SigmaX<-sd(TruLTD) # SD of LTD
-  Gshape<-MuX^2/SigmaX^2 # the alpha parameter of the gamma distribution
-  Gscale<-MuX/SigmaX^2 # the 1/beta paramter of the gamma distribution
+#  SigmaX<-sd(TruLTD) # SD of LTD
+#  Gshape<-MuX^2/SigmaX^2 # the alpha parameter of the gamma distribution
+#  Gscale<-MuX/SigmaX^2 # the 1/beta paramter of the gamma distribution
   TruLTD<-sort(TruLTD) # Sorts the true LTD vector
   ES<-ExpShort(TruLTD,10^6) # Calculate the expected shorts (ES)
   assign(paste("ES",d,sep = ""),ES)
   
   for (c in U[,1]) {
     
+# IGNORE NORMAL & GAMMA, they don't give true estimates for the distributions in our test bed
+    
     P2<-U[c,2] # The P2 experimental level
     Q<-Qexps[c,CV] # Use the correct Q
-    Qratio<-Q/SigmaX # Calculates the Q/sigma for the normal ROP and SS calculation
+#    Qratio<-Q/SigmaX # Calculates the Q/sigma for the normal ROP and SS calculation
     TS<-Q*(1-P2)+Qratio # Calculate the target shorts (TS)
     diff<-TS-ES # Take the difference between the target and expected shorts
     # The next two values are the indices for the ES vector on either side of the TS
@@ -108,27 +110,27 @@ for (d in 1:22){ # Cycle through all the distributions in ExpInputs
     BTruSS[d,c]<-BTruROP[d,c]-MuX
     
     # Calculate the normal ROP and SS
-    normloss<-Qratio*(1-P2) # Calculate the value of the normal loss function
+#   normloss<-Qratio*(1-P2) # Calculate the value of the normal loss function
     # The Silver (1970) adjustment G(k) - G(k+Q/Sigma_X) = Q/Sigma_X*(1-P_2) to find k
     #Then used in ROP = k*SigmaX + MuX
     # The optimize function finds the "z" value that minimizes (zeroes) the function finds the closest value to true "z"
-    NTruSS[d,c]<-optimize(function(z){abs(((dnorm(z)-z*(1-pnorm(z)))-(dnorm(z+Qratio)-
-                                  (z+Qratio)*(1-pnorm(z+Qratio))))-
-                                  normloss)},lower=0,upper = 6)$minimum*SigmaX
+#    NTruSS[d,c]<-optimize(function(z){abs(((dnorm(z)-z*(1-pnorm(z)))-(dnorm(z+Qratio)-
+#                                  (z+Qratio)*(1-pnorm(z+Qratio))))-
+#                                  normloss)},lower=0,upper = 6)$minimum*SigmaX
 #    if (NTruROP[d,c]<1)browser() # **** FOR DEBUGGING
-    NTruROP[d,c]<-NTruSS[d,c]+MuX # Calculate the ROP
+#    NTruROP[d,c]<-NTruSS[d,c]+MuX # Calculate the ROP
     
     # Calculate the gamma ROP and SS
-    GTruROP[d,c]<-optimize(function(s){abs((Gshape/Gscale*(1-pgamma(s,Gshape+1,
-                         Gscale))-s*(1-pgamma(s,Gshape,Gscale)))-TS)},
-                         lower=0,upper=qgamma(0.99,Gshape,Gscale))$minimum
-    GTruSS[d,c]<-GTruROP[d,c]-MuX # Calculate the SS
+#    GTruROP[d,c]<-optimize(function(s){abs((Gshape/Gscale*(1-pgamma(s,Gshape+1,
+#                         Gscale))-s*(1-pgamma(s,Gshape,Gscale)))-TS)},
+#                         lower=0,upper=qgamma(0.99,Gshape,Gscale))$minimum
+#    GTruSS[d,c]<-GTruROP[d,c]-MuX # Calculate the SS
   }
 }
 
-write.table(BTruROP,file = "BTrueROP.csv",sep=",",row.names = FALSE,col.names=FALSE)
-write.table(BTruSS,file = "BTrueSS.csv",sep=",",row.names = FALSE,col.names=FALSE)
-write.table(NTruROP,file = "NTrueROP.csv",sep=",",row.names = FALSE,col.names=FALSE)
-write.table(NTruSS,file = "NTrueSS.csv",sep=",",row.names = FALSE,col.names=FALSE)
-write.table(GTruROP,file = "GTrueROP.csv",sep=",",row.names = FALSE,col.names=FALSE)
-write.table(GTruSS,file = "GTrueSS.csv",sep=",",row.names = FALSE,col.names=FALSE)
+write.table(TruROP,file = "TrueROP.csv",sep=",",row.names = FALSE,col.names=FALSE)
+write.table(TruSS,file = "TrueSS.csv",sep=",",row.names = FALSE,col.names=FALSE)
+# write.table(NTruROP,file = "NTrueROP.csv",sep=",",row.names = FALSE,col.names=FALSE)
+# write.table(NTruSS,file = "NTrueSS.csv",sep=",",row.names = FALSE,col.names=FALSE)
+# write.table(GTruROP,file = "GTrueROP.csv",sep=",",row.names = FALSE,col.names=FALSE)
+# write.table(GTruSS,file = "GTrueSS.csv",sep=",",row.names = FALSE,col.names=FALSE)
