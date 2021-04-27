@@ -10,11 +10,12 @@ bimodDistFunc <- function (sz,modsplt, cpar1, cpar2, vpar1, vpar2) {
   y <- y0*pct + y1*(1-pct) 
 }
 
-######   BOOTSTRAP ALGORITHM FOR FILL RATE WITH FIXED Q   ######
+######   BOOTSTRAP ALGORITHM FOR FILL RATE WITH FIXED Q P_2 > 0.9  ######
 FRBoot<-function(tildeX){
   
 # Define a function to estimate the expected shorts for every bootstrap sample
 #   Note that the n-th ES value will always be zero, hence, n-th P2 value is always 1
+#   Must only apply the ExpShort function on data sorted in ascending order
 ExpShort<-function(x,n)
 {
   short<-1:n
@@ -98,8 +99,100 @@ for (k in 1:B) # Iterate over all B resamples
 s_boot<-mean(s_hat) 
 }
 
-######        END BOOTSTRAP ALGORITHM       ######
+######        END CONVENTIONAL BOOTSTRAP ALGORITHM       ######
 
+
+######   SILVER MODIFIED FILL RATE BOOTSTRAP ALGORITHM FOR FIXED Q & P_2 <= 0.9  ######
+SMFRBoot<-function(tildeX){
+  
+  # Estimate the Silver (1970) modified expected shorts for every bootstrap sample
+  #   Note that the n-th ES value will always be zero, hence, n-th P2 value is always 1
+  #   Must only apply the ExpShort function on data sorted in ascending order
+  SMExpShort<-function(x,n)
+  {
+    modshort<-(1:n)*0
+    for (i in 1:(n-1))
+    {
+      j<-max(which((x[i]+Q-x)>0))
+      modshort[i]<-Q-Q*i/n-(sum(x[i]+Q-x[(i+1):j])/n)
+    }
+    return(modshort)
+  }
+  
+  #B Bootstrap sorted resamples of LTD data in tilde X
+  BtSmplX<-replicate(B,sort(sample(tildeX,size=nX,replace = TRUE)))
+  
+  #Use the ExpShort() function to calc exp. shorts for all B resamples (in cols)
+  SMesMat<-apply(BtSmplX,2,SMExpShort,n=nX)
+  
+  # Calculate the target shorts (TS)
+  TS<-Q*(1-P2)
+  
+  # Calculate this difference before the for loop to calculate the s_hat vector
+  diff<-TS-SMesMat
+  
+  # Function to find the largest negative value in a resample
+  maxneg<-function(vec)
+  {
+    # Test that at least one ES > TS
+    if(length(which(vec<0))>0){
+      out<-max(which(vec==max(vec[vec<0])))
+    }
+    # If all ES < TS then flag for debugging
+    else {out<-99}
+    return(out)
+  }
+  
+  # Function to find the smallest positive value in a resample
+  minpos<-function(vect)
+  {
+    out<-min(which(vect==min(vect[vect>0])))
+    return(out)
+  }
+  
+  # Vector of resample indices with smallest ES>TS
+  lo<-apply(diff,2,maxneg)
+  # Vector of resample indices with smallest ES<TS
+  hi<-apply(diff,2,minpos)
+  
+  #  returns a B length vector of the ROP estimate s_hat for each resample
+  SMs_hat<-1:B # vector to store the estimates ROP for each bootstrap resample
+  
+  for (k in 1:B) # Iterate over all B resamples
+  {
+    # 1. The first condition is if at least one of the resample values ES = TS
+    if(length(which(diff[,k]==0))>0)
+    {
+      if (which(diff[,k] == 0)) browser()
+      SMs_hat[k]<-BtSmplX[which(diff[,k]==0),k]
+    }
+    # 2. The second condition is if all resample values are equal 
+    if(length(which(BtSmplX[,k]==BtSmplX[1,k]))==nX)
+    {
+      SMs_hat[k]<-BtSmplX[1,k]
+    }
+    # 3. The third condition is when all the resample values ES<TS  
+    else if(length(which(SMesMat[,k]<TS))==0 && length(which(BtSmplX[,k]==BtSmplX[1,k]))<nX)
+    {
+      # This calculates the index of the second smallest bootstrap resample
+      m0<-max(which(BtSmplX[,k]==min(BtSmplX[,k])))+1
+      SMs_hat[k]<-BtSmplX[1,k]-(((TS-esMat[1,k])*(BtSmplX[m0,k]-BtSmplX[1,k]))/
+                                (esMat[1,k]-esMat[m0,k]))
+    }
+    # 4. The fourth condition is when resample ES values are such that ES(1)<TS<ES(nX)
+    else 
+    {
+      SMs_hat[k]<-BtSmplX[hi[k],k]-(((TS-esMat[hi[k],k])*(BtSmplX[hi[k],k]-BtSmplX[lo[k],k]))/
+                                    (esMat[lo[k],k]-esMat[hi[k],k]))
+    }
+    if (is.nan(SMs_hat[k])) browser() # used for tracing the origin of the NaN values
+  }
+  
+  # Calculate the mean ROP of all the bootstrap resamples' ROP
+  SMs_boot<-mean(SMs_hat) 
+}
+
+######        END BOOTSTRAP ALGORITHM       ######
 
 #<<<<<<<<<<<<<<<<<   START EXPERIMENTS  >>>>>>>>>>>>>>>>>>
 library(truncnorm) # package for generating truncated normal variates
