@@ -2,6 +2,16 @@
 library(truncnorm) # package for generating truncated normal variates
 library(stats) #package for generating uniform variates
 
+# Define a function to create a bimodal distribution
+bimodDistFunc <- function (sz,modsplt, cpar1, cpar2, vpar1, vpar2) {
+  #  y0 <- rgamma(sz,cpar1^2/vpar1^2, cpar1/vpar1^2) # USE WHEN FIRST DIST IS GAMMA
+  y0 <- rnorm(sz,cpar1,vpar1) # USE WHEN FIRST DIST IS NORMAL
+  y1 <- rnorm(sz,cpar2,vpar2)
+  
+  pct <- rbinom(sz,size=1,prob=modsplt)
+  y <- y0*pct + y1*(1-pct) 
+}
+
 # Estimate the Silver (1970) modified expected shorts for every bootstrap sample
 #   Note that the n-th ES value will always be zero, hence, n-th P2 value is always 1
 #   Must only apply the ExpShort function on data sorted in ascending order
@@ -84,7 +94,7 @@ for (d in 1:22){ # Cycle through all the distributions in ExpInputs
     
     P2<-U[c,2] # The P2 experimental level
     Q<-Qexps[c,CV] # Use the correct Q
-    TS<-Q*(1-P2)+Qratio # Calculate the target shorts (TS)
+    TS<-Q*(1-P2) # Calculate the target shorts (TS)
     diff<-TS-SMES # Take the difference between the target and expected shorts
     # The next two values are the indices for the ES vector on either side of the TS
     lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
