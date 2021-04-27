@@ -31,6 +31,9 @@ nX<-10^3
 SMTruROP<-matrix(0,nrow=22,ncol=6)
 SMTruSS<-matrix(0,nrow=22,ncol=6)
 
+# Use a fixed random seed to replicate the experiments
+set.seed(931971)
+
 #Distributional inputs
 for (d in 1:22){ # Cycle through all the distributions in ExpInputs
   
