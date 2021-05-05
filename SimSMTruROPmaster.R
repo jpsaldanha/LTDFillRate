@@ -27,13 +27,11 @@ bimodDistFunc <- function (sz,modsplt, cpar1, cpar2, vpar1, vpar2) {
 #   return(modshort)
 # }
 SMExpShort<-function(x,n,qt)
-{
-  mclapply(1:n,
-     function(z)
-     {
-       qt-qt*z/n-(sum(x[z]+qt-x[(z+1):max(which((x[z]+qt-x)>0))])/n)
-     },mc.cores = ncores)
-}
+  {mclapply(1:n,function(z)
+    {
+     qt-qt*z/n-(sum(x[z]+qt-x[(z+1):max(which((x[z]+qt-x)>0))])/n)
+    },mc.cores = ncores)
+  }
 
 
 #INITIALIZE INPUTS
