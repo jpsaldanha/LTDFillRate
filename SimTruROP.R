@@ -14,123 +14,112 @@ bimodDistFunc <- function (sz,modsplt, cpar1, cpar2, vpar1, vpar2) {
   y <- y0*pct + y1*(1-pct) 
 }
 
-# Define a function to estimate the expected shorts for every bootstrap sample
+# # Define a function to estimate the expected shorts for every bootstrap sample
+# ExpShort<-function(x,n)
+# {
+#   short<-1:n
+#   for (i in 1:n)
+#   {
+#     short[i]<-sum(x[i:n]-x[i])/n
+#   }
+#   return(short)
+# }
+
+# Define a (new lapply) function to estimate the expected shorts for every bootstrap sample
 ExpShort<-function(x,n)
 {
-  short<-1:n
-  for (i in 1:n)
-  {
-    short[i]<-sum(x[i:n]-x[i])/n
-  }
-  return(short)
+  mclapply(1:n,
+    function(z)
+    {
+      sum(x[z:n]-x[z])/n
+    }
+  ,mc.cores = ncores)
 }
 
 # Use a fixed random seed to replicate the experiments
 set.seed(931971)
 
-#Inputs
-P2<-0.98 #Fill rate target
-U<-cbind(c(1:6),c(0.8,0.85,0.9,0.95,0.98,0.99))
+#INITIALIZE INPUTS
+P2<-0.80 #Fill rate target %%%%%%%%%%%%%%% CHANGE THIS VALUE FOR EACH P2 FILE
+U<-cbind(c(1:3),c(0.95,0.98,0.99))
+
+#read in distribution parameter and other experimental inputs
 ExpInputs<-read.csv("ExpInputs.csv",header = FALSE)
 Qexps<-read.csv("QExps.csv",header = FALSE)
+nX<-10^5
+D<-22 # Number of distributions
+ncores<-16
 
 # Outputs
-BTruROP<-matrix(0,nrow=22,ncol=6) # Bootstrap ROP
-BTruSS<-matrix(0,nrow=22,ncol=6) # Bootstrap SS
-NTruROP<-matrix(0,nrow=22,ncol=6) # Normal ROP
-NTruSS<-matrix(0,nrow=22,ncol=6) # Normal SS
-GTruROP<-matrix(0,nrow=22,ncol=6) # Gamma ROP
-GTruSS<-matrix(0,nrow=22,ncol=6) # Gamma SS
+TruROP<-matrix(0,nrow=22,ncol=6) # Bootstrap ROP
+TruSS<-matrix(0,nrow=22,ncol=6) # Bootstrap SS
 
-#Distributional inputs
-for (d in 1:22){ # Cycle through all the distributions in ExpInputs
-
+# Variables for the experiments
+TruLTD<-matrix(0,nrow = nX,ncol = 22)
+Q<-matrix(0,nrow = D,ncol = 3)
+system.time(
+  #Distributional inputs
+  for (d in 1:22){ # Cycle through all the distributions in ExpInputs
+    
     #Uniform 1-3
     if (d<=3){
-      TruLTD<-runif(10^6,ExpInputs[d,1],ExpInputs[d,2])}
+      TruLTD[,d]<-sort(runif(nX,ExpInputs[d,1],ExpInputs[d,2]))}
     
     #Truncated normal 4-6
     if (d>=4 && d<=6){
-      TruLTD<-rtruncnorm(10^6,0,mean=ExpInputs[d,1],sd=ExpInputs[d,2])}
+      TruLTD[,d]<-sort(rtruncnorm(nX,0,mean=ExpInputs[d,1],sd=ExpInputs[d,2]))}
     
     #Lognormal distribution draw 7-11
     if (d>=7 && d<=11){
-      TruLTD<-rlnorm(10^6,ExpInputs[d,1],ExpInputs[d,2])}
+      TruLTD[,d]<-sort(rlnorm(nX,ExpInputs[d,1],ExpInputs[d,2]))}
     
     #Two point distribution 12-16
     #if  (d>=12 && d<=16){
-    #TruLTD<-rdiscrete(10^6,c(ExpInputs[d,1],
+    #TruLTD<-rdiscrete(nX,c(ExpInputs[d,1],
     #                                    ExpInputs[d,2]),c(ExpInputs[d,3],ExpInputs[d,4]))}
     
     #Bimodal distribution draw 12-22
     if (d>=12){
-      TruLTD<-bimodDistFunc(10^6,ExpInputs[d,1],ExpInputs[d,2],ExpInputs[d,3],
-                                         ExpInputs[d,4],ExpInputs[d,5])}
-  # Collects a record of the True LTD samples
-  assign(paste("TruX",d,sep = ""),TruLTD)
-  
-  # Identifies the CV of the distribution to select correct Q
-  if (d==1|d==4|d==7|d==12|d==17|d==20) {
-    CV<-1
-  } else if (d==2|d==5|d==8|d==13|d==18|d==21) {
-    CV<-2
-  } else if (d==3|d==6|d==9|d==14|d==19|d==22) {
-    CV<-3
-  } else if (d==10|d==15) {
-    CV<-4
-  } else {
-    CV<-5
+      TruLTD[,d]<-sort(bimodDistFunc(nX,ExpInputs[d,1],ExpInputs[d,2],ExpInputs[d,3],
+                                     ExpInputs[d,4],ExpInputs[d,5]))}
+    
+    # Identifies the CV of the distribution to select correct Q
+    if (d==1|d==4|d==7|d==12|d==17|d==20) {
+      Q[d,]<-c(44,78,94)  # ENTER THE Q FOR THE P2 VALUE
+    } else if (d==2|d==5|d==8|d==13|d==18|d==21) {
+      Q[d,]<-c(73,130,157) # ENTER THE Q FOR THE P2 VALUE
+    } else if (d==3|d==6|d==9|d==14|d==19|d==22) {
+      Q[d,]<-c(110,195,235) # ENTER THE Q FOR THE P2 VALUE
+    } else if (d==10|d==15) {
+      Q[d,]<-c(220,390,470) # ENTER THE Q FOR THE P2 VALUE
+    } else {
+      Q[d,]<-c(440,780,940) # ENTER THE Q FOR THE P2 VALUE
+    }
   }
+)
   
-  # Calculates the shape (alpha) and scale (1/beta) parameters of the gamma distribution
-  MuX<-mean(TruLTD) # Mean of LTD
-#  SigmaX<-sd(TruLTD) # SD of LTD
-#  Gshape<-MuX^2/SigmaX^2 # the alpha parameter of the gamma distribution
-#  Gscale<-MuX/SigmaX^2 # the 1/beta paramter of the gamma distribution
-  TruLTD<-sort(TruLTD) # Sorts the true LTD vector
-  ES<-ExpShort(TruLTD,10^6) # Calculate the expected shorts (ES)
-  assign(paste("ES",d,sep = ""),ES)
-  
+# Calculates the shape (alpha) and scale (1/beta) parameters of the gamma distribution
+MuX<-apply(TruLTD,2,mean) # Mean of LTD
+#  Calculate the expected shorts (ES)
+es0<-mclapply(1:D,function(z){ExpShort(TruLTD[,z],n = nX)},mc.cores = ncores)
+ES<-matrix(0,nrow = nX,ncol = 22)
+for(m in 1:D){for(f in 1:(nX-1)){ES2[f,m]<-es0[[m]][[f]]}}
+
+for(b in 1:D) {
   for (c in U[,1]) {
-    
-# IGNORE NORMAL & GAMMA, they don't give true estimates for the distributions in our test bed
-    
     P2<-U[c,2] # The P2 experimental level
-    Q<-Qexps[c,CV] # Use the correct Q
-#    Qratio<-Q/SigmaX # Calculates the Q/sigma for the normal ROP and SS calculation
-    TS<-Q*(1-P2)+Qratio # Calculate the target shorts (TS)
-    diff<-TS-ES # Take the difference between the target and expected shorts
+    TS<-Q[b,c]*(1-P2) # Calculate the target shorts (TS)
+    diff<-TS-ES[,b] # Take the difference between the target and expected shorts
     # The next two values are the indices for the ES vector on either side of the TS
     lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
     hi<-min(which(diff==min(diff[diff>0]))) # Smallest ES>TS
     
     # Calculate the bootstrap ROP and SS
-    BTruROP[d,c]<-TruLTD[hi]-(((TS-ES[hi])*(TruLTD[hi]-TruLTD[lo]))/
-                                     (ES[lo]-ES[hi]))
-    BTruSS[d,c]<-BTruROP[d,c]-MuX
-    
-    # Calculate the normal ROP and SS
-#   normloss<-Qratio*(1-P2) # Calculate the value of the normal loss function
-    # The Silver (1970) adjustment G(k) - G(k+Q/Sigma_X) = Q/Sigma_X*(1-P_2) to find k
-    #Then used in ROP = k*SigmaX + MuX
-    # The optimize function finds the "z" value that minimizes (zeroes) the function finds the closest value to true "z"
-#    NTruSS[d,c]<-optimize(function(z){abs(((dnorm(z)-z*(1-pnorm(z)))-(dnorm(z+Qratio)-
-#                                  (z+Qratio)*(1-pnorm(z+Qratio))))-
-#                                  normloss)},lower=0,upper = 6)$minimum*SigmaX
-#    if (NTruROP[d,c]<1)browser() # **** FOR DEBUGGING
-#    NTruROP[d,c]<-NTruSS[d,c]+MuX # Calculate the ROP
-    
-    # Calculate the gamma ROP and SS
-#    GTruROP[d,c]<-optimize(function(s){abs((Gshape/Gscale*(1-pgamma(s,Gshape+1,
-#                         Gscale))-s*(1-pgamma(s,Gshape,Gscale)))-TS)},
-#                         lower=0,upper=qgamma(0.99,Gshape,Gscale))$minimum
-#    GTruSS[d,c]<-GTruROP[d,c]-MuX # Calculate the SS
+    TruROP[b,c]<-TruLTD[hi]-(((TS-ES[hi,b])*(TruLTD[hi,b]-TruLTD[lo,b]))/
+                                     (ES[lo,b]-ES[hi,b]))
+    TruSS[b,c]<-TruROP[b,c]-MuX[b]
   }
 }
 
 write.table(TruROP,file = "TrueROP.csv",sep=",",row.names = FALSE,col.names=FALSE)
 write.table(TruSS,file = "TrueSS.csv",sep=",",row.names = FALSE,col.names=FALSE)
-# write.table(NTruROP,file = "NTrueROP.csv",sep=",",row.names = FALSE,col.names=FALSE)
-# write.table(NTruSS,file = "NTrueSS.csv",sep=",",row.names = FALSE,col.names=FALSE)
-# write.table(GTruROP,file = "GTrueROP.csv",sep=",",row.names = FALSE,col.names=FALSE)
-# write.table(GTruSS,file = "GTrueSS.csv",sep=",",row.names = FALSE,col.names=FALSE)
