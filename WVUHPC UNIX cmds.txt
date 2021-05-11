@@ -1,0 +1,19 @@
+Spruce Knob Cluster: 
+	ssh spruce.hpc.wvu.edu
+
+Thorny Field Cluster: 
+	ssh <username)@ssh.wvu.edu, tf.hpc.wvu.edu
+
+Open R 3.6 (to install R packages): 
+	module load singularity/2.5.2
+	singularity exec /shared/software/containers/RStudio-server-1.2.5033_R-3.6.2.simg R
+
+Open R 4.0 (to install R packages): 
+	module load singularity/2.5.2
+	singularity exec /shared/software/containers/RStudio-server-1.3.1093_R-4.0.2.simg R
+
+Quit R
+	quit()
+
+Check Cluster Node Queue Status
+	Qstat -q

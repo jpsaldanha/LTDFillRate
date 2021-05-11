@@ -50,10 +50,11 @@ maxneg<-function(vec)
   return(out)
 }
 
-# Function to find the smallest positive value in a resample
+# Function to find the smallest positive (including zero) value in a resample
 minpos<-function(vect)
 {
-  out<-min(which(vect==min(vect[vect>0])))
+  # use >0 for all nonzero +ve numbers or >=0 for all +ve numbers including zero
+  out<-min(which(vect==min(vect[vect>=0]))) 
   return(out)
 }
 
@@ -67,26 +68,20 @@ s_hat<-1:B # vector to store the estimates ROP for each bootstrap resample
 
 for (k in 1:B) # Iterate over all B resamples
 {
-  # 1. The first condition is if at least one of the resample values ES = TS
-  if(length(which(diff[,k]==0))>0)
-  {
-    if (which(diff[, k] == 0)) browser()
-    s_hat[k]<-BtSmplX[which(diff[,k]==0),k]
-  }
-  # 2. The second condition is if all resample values are equal 
+  # 1. The first condition is if all resample values are equal 
   if(length(which(diff[,k]==TS))==nX)
   {
     s_hat[k]<-BtSmplX[1,k]
   }
-  # 3. The third condition is when all the resample values ES<TS  
+  # 2. The second condition is when all the resample values ES<TS  
   else if(length(which(diff[,k]<0))==0 && length(which(diff[,k]==TS))<nX)
   {
-    # This calculates the index of the second smallest bootstrap resample
+    # Calculates the index of the second smallest bootstrap resample to consider duplicates
     m0<-max(which(BtSmplX[,k]==min(BtSmplX[,k])))+1
     s_hat[k]<-BtSmplX[1,k]-(((TS-esMat[1,k])*(BtSmplX[m0,k]-BtSmplX[1,k]))/
                                   (esMat[1,k]-esMat[m0,k]))
   }
-  # 4. The fourth condition is when resample ES values are such that ES(1)<TS<ES(nX)
+  # 3. The third condition is when resample ES values are such that ES(1)<TS<ES(nX)
   else 
   {
     s_hat[k]<-BtSmplX[hi[k],k]-(((TS-esMat[hi[k],k])*(BtSmplX[hi[k],k]-BtSmplX[lo[k],k]))/
@@ -163,7 +158,7 @@ SMFRBoot<-function(tildeX){
     # 1. The first condition is if at least one of the resample values ES = TS
     if(length(which(diff[,k]==0))>0)
     {
-      if (which(diff[,k] == 0)) browser()
+     # if (which(diff[,k] == 0)) browser()
       SMs_hat[k]<-BtSmplX[which(diff[,k]==0),k]
     }
     # 2. The second condition is if all resample values are equal 
@@ -172,18 +167,18 @@ SMFRBoot<-function(tildeX){
       SMs_hat[k]<-BtSmplX[1,k]
     }
     # 3. The third condition is when all the resample values ES<TS  
-    else if(length(which(SMesMat[,k]<TS))==0 && length(which(BtSmplX[,k]==BtSmplX[1,k]))<nX)
+    else if(length(which(SMesMat[,k]>TS))==0 && length(which(BtSmplX[,k]==BtSmplX[1,k]))<nX)
     {
       # This calculates the index of the second smallest bootstrap resample
       m0<-max(which(BtSmplX[,k]==min(BtSmplX[,k])))+1
-      SMs_hat[k]<-BtSmplX[1,k]-(((TS-esMat[1,k])*(BtSmplX[m0,k]-BtSmplX[1,k]))/
-                                (esMat[1,k]-esMat[m0,k]))
+      SMs_hat[k]<-BtSmplX[1,k]-(((TS-SMesMat[1,k])*(BtSmplX[m0,k]-BtSmplX[1,k]))/
+                                (SMesMat[1,k]-SMesMat[m0,k]))
     }
     # 4. The fourth condition is when resample ES values are such that ES(1)<TS<ES(nX)
     else 
     {
-      SMs_hat[k]<-BtSmplX[hi[k],k]-(((TS-esMat[hi[k],k])*(BtSmplX[hi[k],k]-BtSmplX[lo[k],k]))/
-                                    (esMat[lo[k],k]-esMat[hi[k],k]))
+      SMs_hat[k]<-BtSmplX[hi[k],k]-(((TS-SMesMat[hi[k],k])*(BtSmplX[hi[k],k]-BtSmplX[lo[k],k]))/
+                                    (SMesMat[lo[k],k]-SMesMat[hi[k],k]))
     }
     if (is.nan(SMs_hat[k])) browser() # used for tracing the origin of the NaN values
   }
@@ -192,15 +187,12 @@ SMFRBoot<-function(tildeX){
   SMs_boot<-mean(SMs_hat) 
 }
 
-######        END BOOTSTRAP ALGORITHM       ######
+######        END SM BOOTSTRAP ALGORITHM       ######
 
 #<<<<<<<<<<<<<<<<<   START EXPERIMENTS  >>>>>>>>>>>>>>>>>>
 library(truncnorm) # package for generating truncated normal variates
 #library(e1071) #package for generating two-point variates
 library(stats) #package for generating uniform variates
-
-# Set the working directory
-#setwd("/Users/beuser/Documents/Work/Research/Solo Research/Bootstrap Research/Bootstrap Fill Rate/LTDFillRate/") 
 
 # Use a fixed random seed to replicate the experiments
 set.seed(931971)
@@ -218,7 +210,7 @@ Dist<-22 #no. of distributions
 #read in distribution parameter and other experimental inputs
 ExpInputs<-read.csv("ExpInputs.csv",header = FALSE)
 Qexps<-read.csv("QExps.csv",header = FALSE)
-TruROP<-read.csv("TrueROP.csv",header = FALSE)
+TruROP<-read.csv("TruROP.csv",header = FALSE)
 
 
 #Function to generate a vector of the std normal loss function for k=0.00-4.00
@@ -238,7 +230,7 @@ resultG<-1:R # temporary list used to estimate gamma ROP
 # Matrices to loop through all experiments.
 U<-cbind(c(1:6),c(0.8,0.85,0.9,0.95,0.98,0.99))
 V<-cbind(c(1:4),c(7,12,24,30))
-
+system.time(
 #Distributional inputs
 for (d in 1:22){ # Cycle through all the distributions in ExpInputs
   for (b in V[,1]) {
@@ -285,7 +277,6 @@ for (d in 1:22){ # Cycle through all the distributions in ExpInputs
     # Calculates LTD sample Mu_X, Sigma_X & Q/Sigma_X ratio to estimate normal approach ROP
     MuX<-apply(LTDsmpl,2,mean)
     SigmaX<-apply(LTDsmpl,2,sd)
-    Qratio<-Q/SigmaX
     # Calcukates the shape (alpha) and scale (1/beta) parameters of the gamma distribution
     Gshape<-MuX^2/SigmaX^2 # the alpha parameter of the gamma distribution
     Gscale<-MuX/SigmaX^2 # the 1/beta paramter of the gamma distribution
@@ -293,33 +284,61 @@ for (d in 1:22){ # Cycle through all the distributions in ExpInputs
     for (c in U[,1]) {
         P2<-U[c,2] # The P2 experimental level
         
-        # Use the correct Q
+        # Use the correct Q Qratio
         Q<-Qexps[c,CV]
+        Qratio<-Q/SigmaX
         
         # Returns the Bootstrap ROP
-        sboot[(d-1)*(P2lvls*nXlvls)+(b-1)*P2lvls+c,]<-t(apply(LTDsmpl,2,FRBoot)) 
+        if(P2>0.9){
+        sboot[(d-1)*(P2lvls*nXlvls)+(b-1)*P2lvls+c,]<-t(apply(LTDsmpl,2,FRBoot))
+        } else {
+        sboot[(d-1)*(P2lvls*nXlvls)+(b-1)*P2lvls+c,]<-t(apply(LTDsmpl,2,SMFRBoot))}
         
         # Returns the normal ROP
         # *******  In the small chance all x are identical Qratio (Q/SigmaX) is undefined *****
         normloss<-vapply(Qratio,function(x){x*(1-P2)},numeric(1))
         # The Silver (1970) adjustment G(k) - G(k+Q/Sigma_X) = Q/Sigma_X*(1-P_2) to find k
           #Then used in ROP = k*SigmaX + MuX
-        for (l in 1:R) {
-          # The optimize function finds the "z" value that minimizes (zeroes) the function finds the closest value to true "z"
-          resultN[l]<-optimize(function(z){abs(((dnorm(z)-z*(1-pnorm(z)))-(dnorm(z+Qratio[l])-
-                   (z+Qratio[l])*(1-pnorm(z+Qratio[l]))))-
-                     normloss[l])},lower=0,upper = 6)$minimum*SigmaX[l]+MuX[l]
-          if (resultN[l]<1)browser() # **** FOR DEBUGGING
+        if(P2>0.9){
+          for (l in 1:R) {
+            # The optimize function finds the "z" value that minimizes (zeroes) 
+            #  the function finds the closest value to true "z"
+            resultN[l]<-optimize(function(z){abs((dnorm(z)-z*(1-pnorm(z)))-
+                       normloss[l])},lower=0,upper = 6)$minimum*SigmaX[l]+MuX[l]
+            if (resultN[l]<1)browser() # **** FOR DEBUGGING
+          }
+        }
+        else{
+          for (l in 1:R) {
+            # The optimize function finds the "z" value that minimizes (zeroes) 
+            #  the function finds the closest value to true "z"
+            resultN[l]<-optimize(function(z){abs(((dnorm(z)-z*(1-pnorm(z)))-
+                        (dnorm(z+Qratio[l])-(z+Qratio[l])*(1-pnorm(z+Qratio[l]))))-
+                        normloss[l])},lower=0,upper = 6)$minimum*SigmaX[l]+MuX[l]
+            if (resultN[l]<1)browser() # **** FOR DEBUGGING
+          }
         }
         sNorm[(d-1)*(P2lvls*nXlvls)+(b-1)*P2lvls+c,]<-t(resultN)
         
-        # Returns the gamma ROP
+        # Returns the gamma ROP from Tyworth Guo and Ganeshan (1996) for P2 > 0.9
         gESC<-Q*(1-P2) # Calculates the ESC
-        for (g in 1:R) {
-          resultG[g]<-optimize(function(s){abs((Gshape[g]/Gscale[g]*(1-pgamma(s,Gshape[g]+1,
-                      Gscale[g]))-s*(1-pgamma(s,Gshape[g],Gscale[g])))-gESC)},
-                      lower=0,upper=qgamma(0.99,Gshape[g],Gscale[g]))$minimum
-#          if (resultG[g]<1)browser()
+        if(P2>0.9){
+          for (g in 1:R) {
+            resultG[g]<-optimize(function(s){abs((Gshape[g]/Gscale[g]*(1-pgamma(s,Gshape[g]+1,
+                        Gscale[g]))-s*(1-pgamma(s,Gshape[g],Gscale[g])))-gESC)},
+                        lower=0,upper=qgamma(0.99,Gshape[g],Gscale[g]))$minimum
+  #          if (resultG[g]<1)browser()
+          }
+        } else {
+        # Returns the gamma ROP from Silver (1970) for P2 <= 0.9
+          for (g in 1:R) {
+            resultG[g]<-optimize(function(s)
+              {abs(Q-(Q*pgamma(s,Gshape[g],Gscale[g])+(s+Q)*(pgamma(s+Q,Gshape[g],Gscale[g])-
+              pgamma(s,Gshape[g],Gscale[g]))-Gshape[g]/Gscale[g]*
+              (pgamma(s+Q,Gshape[g]+1,Gscale[g])-pgamma(s,Gshape[g]+1,Gscale[g])))-gESC)
+              },lower=0,upper=qgamma(0.99,Gshape[g],Gscale[g]))$minimum
+            #          if (resultG[g]<1)browser()
+          }
         }
         sGamm[(d-1)*(P2lvls*nXlvls)+(b-1)*P2lvls+c,]<-t(resultG)
         
@@ -332,7 +351,7 @@ for (d in 1:22){ # Cycle through all the distributions in ExpInputs
       }
   }
 }
-
+)
 # Creates bootstrap output dataframe with named columns
 labels[,6]<-"boot"
 btROPrslts<-as.data.frame(cbind(labels,sboot))
@@ -360,9 +379,9 @@ for (i in 1:R) {
 reps<-rbind(sboot,sNorm,sGamm)
 repsmeans<-rowMeans(reps)
 stkdlbls<-rbind(labels,labels,labels)
-stkdlbls[1:528,6]<-"boot"
-stkdlbls[529:1056,6]<-"normal"
-stkdlbls[1057:1584,6]<-"gamma"
+stkdlbls[1:(P2lvls*nXlvls*Dist),6]<-"boot"
+stkdlbls[(P2lvls*nXlvls*Dist+1):(P2lvls*nXlvls*Dist*2),6]<-"normal"
+stkdlbls[(P2lvls*nXlvls*Dist*2+1):(P2lvls*nXlvls*Dist*3),6]<-"gamma"
 AllResultsMeans<-as.data.frame(cbind(stkdlbls,repsmeans))
 names(AllResultsMeans)[1]<-"DistNo."
 names(AllResultsMeans)[2]<-"nX"
@@ -375,11 +394,11 @@ names(AllResultsMeans)[7]<-"Mean"
 # Return results in stacked format
 library(reshape)
 AllStkdRslts <- reshape(AllResults, 
-             varying = c(7:106), 
+             varying = c(7:(R+6)), 
              v.names = "ROP",
              timevar = "Reps", 
-             times = c(1:100), 
-             new.row.names = 1:158400,
+             times = c(1:R), 
+             new.row.names = 1:(P2lvls*nXlvls*Dist*R*3),
              direction = "long")
 
 # If the data need to be sorted
