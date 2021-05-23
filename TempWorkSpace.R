@@ -138,3 +138,34 @@ testExpShort<-function(x,n)
 system.time(testES<-testExpShort(TruLTD,10^4))
 
 test<-ExpShort(TruLTD[,16],nX)
+
+
+bimod15<-sort(bimodDistFunc(10^6,ExpInputs[15,1],ExpInputs[15,2],ExpInputs[15,3],
+                   ExpInputs[15,4],ExpInputs[15,5]))
+system.time(
+SMES15<-SMExpShort(bimod15,10^6,127))
+diff<-TS-SMES15
+lo<-max(which(diff==max(diff[diff<0])))
+hi<-min(which(diff==min(diff[diff>=0])))
+
+for(a in 1:3){
+  for(l in 1:R){
+    for (d in 1:Dist){
+      for (b in V[,1]) {
+        for (c in U[,1]) {
+          ETC[(a-1)*(R*Dist*P2lvls*nXlvls)+(l-1)*(Dist*P2lvls*nXlvls)+(d-1)*
+                (P2lvls*nXlvls)+(b-1)*P2lvls+c,1]<-a
+          # ESTIMATED SAFETY STOCKS
+          ETC[(a-1)*(R*Dist*P2lvls*nXlvls)+(l-1)*(Dist*P2lvls*nXlvls)+(d-1)*(P2lvls*nXlvls)+
+                (b-1)*P2lvls+c,2]<-l
+          # ESTIMATED EXPECTED SHORTS
+          ETC[(a-1)*(R*Dist*P2lvls*nXlvls)+(l-1)*(Dist*P2lvls*nXlvls)+(d-1)*(P2lvls*nXlvls)+
+                (b-1)*P2lvls+c,3]<-d
+          # TOTAL ESTIMATED COSTS
+          ETC[(a-1)*(R*Dist*P2lvls*nXlvls)+(l-1)*(Dist*P2lvls*nXlvls)+(d-1)*(P2lvls*nXlvls)+
+                (b-1)*P2lvls+c,4]<-b
+        }
+      }
+    }
+  }
+}
