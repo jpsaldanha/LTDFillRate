@@ -120,3 +120,4 @@ names(AllCostRslts)[4]<-"EstCost"
 AllStkdCostRslts<-cbind(ExpROP,AllCostRslts)
 
 write.csv(AllStkdCostRslts, 'AllStkdCostRslts.csv')
+write.csv(TTC, 'TruTotCost.csv')
