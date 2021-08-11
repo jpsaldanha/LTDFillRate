@@ -2,22 +2,24 @@
 
 library(shiny)
 library(shinybusy)
+library(bslib)
 
 
-ui <- navbarPage(title = "Fill Rate Calculator",
-                 add_busy_spinner(spin = "fading-circle"),
+ui <- navbarPage(theme = bs_theme(version = 4, bootswatch = "journal"),
+                 title = "Fill Rate Calculator",
                  tabPanel(title = "Experimental Distributions",
+                          add_busy_spinner(spin = "fading-circle"),
                           sidebarLayout(
                             sidebarPanel(
                               tags$h2("Inputs"),
                               tags$p("Select a distribution and P2 proportion",
                                      "fill rate from the drop down menus below.",
                                      "Then click",tags$strong("Run"),
-                                     "to produce a 1 million draw histogram",
+                                     "to produce a 1 million draw histogram (grey)",
                                      "of the selected distribution with the",
-                                     "true, normal and gamma reorder points (ROPs)",
-                                     "marked at the fill rate selected.",
-                                     "The explanation below the plot provides",
+                                     "true (black), normal (red) and gamma (blue)", "
+                                     reorder points (ROPs) marked at the fill rate",
+                                     "selected. The explanation below the plot provides",
                                      "additional information including ROP values."),
                               selectInput("dist1",
                                           "Select a Distribution:",
@@ -51,9 +53,11 @@ ui <- navbarPage(title = "Fill Rate Calculator",
                               tags$h2("Histogram Plot"),
                               plotOutput("tab1plot"),
                               hr(),
-                              textOutput("tab1text")))
+                              tags$p(textOutput("tab1text0")),
+                              tags$em(textOutput("tab1text1"))))
                  ),
                  tabPanel(title = "Benchmarking Estimators",
+                          add_busy_spinner(spin = "fading-circle"),
                           sidebarLayout(
                             sidebarPanel(
                               tags$h2("Inputs"),
@@ -106,9 +110,11 @@ ui <- navbarPage(title = "Fill Rate Calculator",
                               sliderInput("B2","Bootstrap Resamples",
                                           100,1000,500,step = 100
                               ),
-                              tags$em("High values of sample size and bootstrap sample size",
+                              tags$em("(High values of sample size and bootstrap sample size",
                                       "will result in longer refresh times and may overload",
-                                      "the server."),
+                                      "the server.)"),
+                              tags$br(),
+                              tags$br(),
                               radioButtons("ropEst2", "ROP Estimator",
                                            c("Normal" = 1,
                                              "Gamma" = 2),
@@ -124,11 +130,12 @@ ui <- navbarPage(title = "Fill Rate Calculator",
                               #tableOutput("tab2testtable"),
                               #textOutput("tab2test"),
                               tags$p(textOutput("tab2text1")),
-                              tags$p("Note: The mean normal or gamma ROP marks ",
+                              tags$em("Note: The mean normal or gamma ROP marks ",
                               "may not be visible if they are outside the range ",
                               "of the plot.")))
                  ),
                  tabPanel(title = "Industry Application",
+                          add_busy_spinner(spin = "fading-circle"),
                           sidebarLayout(
                             sidebarPanel(
                               tags$h2("Inputs"),
@@ -151,13 +158,13 @@ ui <- navbarPage(title = "Fill Rate Calculator",
                               selectInput("skutab3",
                                           "Select a SKU LTD distribution:",
                                           c("SKU 3" = 1,
-                                            #"SKU 6" = 2,
-                                            #"SKU 7" = 3,
-                                            #"SKU 9" = 4,
-                                            #"SKU 10" = 5,
-                                            #"SKU 13" = 6,
-                                            #"SKU 14" = 7,
-                                            #"SKU 16" = 8,
+                                            "SKU 6" = 2,
+                                            "SKU 7" = 3,
+                                            "SKU 9" = 4,
+                                            "SKU 10" = 5,
+                                            "SKU 13" = 6,
+                                            "SKU 14" = 7,
+                                            "SKU 16" = 8,
                                             "SKU 17" = 9)),
                               selectInput("P2exps3","Select a P2 Fill Rate",
                                           c(0.8,0.85,0.9,0.95,0.98,0.99),
@@ -167,9 +174,11 @@ ui <- navbarPage(title = "Fill Rate Calculator",
                               sliderInput("B3","Bootstrap Resamples",
                                           100,1000,500,step = 100
                               ),
-                              tags$em("High values of sample size and bootstrap sample size",
+                              tags$em("(High values of sample size and bootstrap sample size",
                                       "will result in longer refresh times and may overload",
-                                      "the server."),
+                                      "the server.)"),
+                              tags$br(),
+                              tags$br(),
                               radioButtons("ropEst3", "ROP Estimator",
                                            c("Normal" = 1,
                                              "Gamma" = 2),
@@ -185,7 +194,7 @@ ui <- navbarPage(title = "Fill Rate Calculator",
                               #tableOutput("tab3testtable"),
                               textOutput("tab2test"),
                               tags$p(textOutput("tab3text1")),
-                              tags$p("Note: The mean normal or gamma ROP marks ",
+                              tags$em("Note: The mean normal or gamma ROP marks ",
                                      "may not be visible if they are outside the range ",
                                      "of the plot.")))
                  )
@@ -551,17 +560,14 @@ server <- function(input, output) {
   })
 
   #TAB1 HISTOGRAM PLOT EXPLANATION
-  output$tab1text <-renderText({
+  output$tab1text0 <-renderText({
     if(pi1()>0.9){
     paste("In the histogram plot the true reorder point (ROP) at ",
           round(TruROP1(),1)," is marked by the black line, the normal ROP at ",
           round(normROP1(),1)," is marked by the red line, and the gamma ROP at ",
           round(gammaROP1(),1)," is marked by the blue line. ",
           "The normal ROP is ",diffnormTru1(),"% from the true and the gamma ROP is ",
-          diffgammaTru1(),"% from the true.",
-    ### Move the text from lines 481-2 and 492-3 to a sepearate text output with html tag em()###
-          "Note: The normal and gamma ROP marks may not be visible",
-          " if they are outside the range of the plot.",sep="")
+          diffgammaTru1(),"% from the true.",sep="")
     } else {
       paste("In the histogram plot the true reorder point (ROP) at ",
             round(TruROP1(),1)," is marked by the black line,",
@@ -574,6 +580,11 @@ server <- function(input, output) {
             "% from the true.  ","Note: The normal and gamma ROP marks may not be visible",
             " if they are outside the range of the plot.",sep="")
     }
+  })
+  
+  output$tab1text1 <-renderText({
+  paste("Note: The normal and gamma ROP marks may not be visible",
+  " if they are outside the range of the plot.",sep="")
   })
   
     #########
@@ -682,7 +693,7 @@ server <- function(input, output) {
 
     #BOOTSTRAP ROP
     bootROP2<-reactive({
-      withProgress(message = "Calculating Bootstrap ROP",value = 0,{incProgress(0.1)})
+#     withProgress(message = "Calculating Bootstrap ROP",value = 0,{incProgress(0.1)})
       Bootrop2<-c(1:R2)
       Q2<-Qexps[P2_2(),CV2()]
       Bootrop2<-apply(LTDsmpl2(),2,bootxfr,qty=Q2,P2=pi2(),B=nB2())
@@ -691,7 +702,7 @@ server <- function(input, output) {
     
     #TRADITIONAL NORMAL ROP
     normROP2<-reactive({
-      withProgress(message = "Calculating Normal ROP",value = 0,{incProgress(0.1)})
+#     withProgress(message = "Calculating Normal ROP",value = 0,{incProgress(0.1)})
       Q2<-Qexps[P2_2(),CV2()]
       NormROP2<-c(1:R2)
       for (i in 1:R2) {
@@ -705,8 +716,8 @@ server <- function(input, output) {
 
     #SILVER MODIFIED NORMAL ROP
     SMnormROP2<-reactive({
-      withProgress(message = "Calculating the Silver (1970) modified normal ROP",
-                   value = 0,{incProgress(0.1)})
+#     withProgress(message = "Calculating the Silver (1970) modified normal ROP",
+#                   value = 0,{incProgress(0.1)})
       Q2<-Qexps[P2_2(),CV2()]
       smNormROP2<-c(1:R2)
       for (j in 1:R2) {
@@ -721,7 +732,7 @@ server <- function(input, output) {
 
     #TYWORTH GUO & GANESHAN (1996) GAMMA ROP
     gammaROP2<-reactive({
-      withProgress(message = "Calculating the gamma ROP",value = 0,{incProgress(0.1)})
+#     withProgress(message = "Calculating the gamma ROP",value = 0,{incProgress(0.1)})
       Q2<-Qexps[P2_2(),CV2()]
       gESC2<-Q2*(1-pi2())
       GammROP2<-c(1:R2)
@@ -739,8 +750,8 @@ server <- function(input, output) {
 
     #SILVER MODIFIED GAMMA ROP
     SMgammaROP2<-reactive({
-      withProgress(message = "Calculating the Silver (1970) modified gamma ROP",
-                   value = 0,{incProgress(0.1)})
+#     withProgress(message = "Calculating the Silver (1970) modified gamma ROP",
+#                   value = 0,{incProgress(0.1)})
       Q2<-Qexps[P2_2(),CV2()]
       gESC2<-Q2*(1-pi2())
       smGammaROP2<-c(1:R2)
@@ -880,7 +891,7 @@ server <- function(input, output) {
     
     
     output$tab2plot <- renderPlot({
-     withProgress(message = "Drawing the Plot",value = 0,{incProgress(0.1)})
+#    withProgress(message = "Drawing the Plot",value = 0,{incProgress(0.1)})
       data2<-dat2()
       group.colors2<-c("Parent Distrib" = "grey",
                       "Bootstrap Est" = "limegreen",
@@ -915,11 +926,11 @@ server <- function(input, output) {
           paste("The  grey histogram is the true parent distribution ",
           "the green histogram is of the bootstrap estimate ROPs and the red histogram ",
           "is of the normal estimate ROPs for the 100 samples. The true ROP at ",
-                round(TruROP2(),1)," is marked by the black line, the mean normal ROP at ",
-                round(mean(normROP2()),1)," is marked by the red line, and the mean ",
-                "bootstrap ROP at ",round(mean(bootROP2()),1)," is marked by the green line. ",
-                "The normal ROP is ",mean(diffnormTru2()),"% from the true and the bootstrap ",
-                "ROP is ",mean(diffbootTru2()),"% from the true.",sep = "")
+          round(TruROP2(),1)," is marked by the black line, the mean normal ROP at ",
+          round(mean(normROP2()),1)," is marked by the red line, and the mean ",
+          "bootstrap ROP at ",round(mean(bootROP2()),1)," is marked by the green line. ",
+          "The normal ROP is ",mean(diffnormTru2()),"% from the true and the bootstrap ",
+          "ROP is ",mean(diffbootTru2()),"% from the true.",sep = "")
         }else{
           paste("The  grey histogram is the true parent distribution ",
                 "the blue histogram is of the gamma estimate ROPs and the green histogram ",
@@ -927,30 +938,30 @@ server <- function(input, output) {
                 round(TruROP2(),1)," is marked by the black line, the gamma ROP at ",
                 round(mean(gammaROP2()),1)," is marked by the blue line, and the bootstrap ",
                 "ROP at ",round(mean(bootROP2()),1)," is marked by the green line. ",
-                "The normal ROP is ",mean(diffgammaTru2()),"% from the true and the ",
+                "The gamma ROP is ",mean(diffgammaTru2()),"% from the true and the ",
                 "bootstrap ROP is ",mean(diffbootTru2()),"% from the true.",sep = "")
         }
       }else{
         if(ropEst2()==1){
           paste("The  grey histogram is the true parent distribution ",
-                "the green histogram is of the Silver (1970) modified bootstrap estimate ",
-                "ROPs and the red histogram is of the Silver (1970) normal estimate ",
-                "ROPs for the 100 samples. The true ROP at ",round(TruROP2(),1)," is marked ",
-                "by the black line, the mean normal ROP at ",round(mean(SMnormROP2()),1),
-                " is marked by the red line, and the mean",
-                " bootstrap ROP at ",round(mean(bootROP2()),1)," is marked by the green line.",
-                " The normal ROP is ",mean(diffSMnormTru2()),"% from the true and the ",
-                "bootstrap ROP is ",mean(diffbootTru2()),"% from the true.",sep = "")
+          "the green histogram is of the Silver (1970) modified bootstrap estimate ",
+          "ROPs and the red histogram is of the Silver (1970) normal estimate ",
+          "ROPs for the 100 samples. The true ROP at ",round(TruROP2(),1)," is marked ",
+          "by the black line, the mean normal ROP at ",round(mean(SMnormROP2()),1),
+          " is marked by the red line, and the mean",
+          " bootstrap ROP at ",round(mean(bootROP2()),1)," is marked by the green line.",
+          " The normal ROP is ",mean(diffSMnormTru2()),"% from the true and the ",
+          "bootstrap ROP is ",mean(diffbootTru2()),"% from the true.",sep = "")
         }else{
           paste("The  grey histogram is the true parent distribution ",
-                "the green histogram is of the Silver (1970) modified bootstrap estimate ROPs ",
-                "and the blue histogram is of the Silver modified gamma estimate ROPs for ",
-                "the 100 samples. The true ROP at",round(TruROP2(),1)," is marked by the ",
-                "black line, the gamma ROP at ",round(mean(SMgammaROP2()),1)," is marked by ",
-                "the blue line, and the bootstrap ROP at ",round(mean(bootROP2()),1),
-                " is marked by the green line. ",
-                "The gamma ROP is ",mean(diffSMgammaTru2()),"% from the true and the bootstrap",
-                " ROP is",mean(diffbootTru2()),"% from the true.",sep = "")
+          "the green histogram is of the Silver (1970) modified bootstrap estimate ROPs ",
+          "and the blue histogram is of the Silver modified gamma estimate ROPs for ",
+          "the 100 samples. The true ROP at",round(TruROP2(),1)," is marked by the ",
+          "black line, the gamma ROP at ",round(mean(SMgammaROP2()),1)," is marked by ",
+          "the blue line, and the bootstrap ROP at ",round(mean(bootROP2()),1),
+          " is marked by the green line. ",
+          "The gamma ROP is ",mean(diffSMgammaTru2()),"% from the true and the bootstrap",
+          " ROP is",mean(diffbootTru2()),"% from the true.",sep = "")
         }
       }
     
@@ -1212,7 +1223,7 @@ server <- function(input, output) {
       }else{
         if(ropEst3()==1){
           paste("Histogram plot of",distname3(),"at",pi3(),"overlayed with", 
-                "a histogram of Silver (1970) modified (red) normal and bootstrap (green)",
+                "a histogram of Silver (1970) modified normal (red) and bootstrap (green)",
                 "estimates for 100 random samples.")
         }else{
           paste("Histogram plot of",distname3(),"at",pi3(),"overlayed with", 
@@ -1256,44 +1267,44 @@ server <- function(input, output) {
       if(pi3()>0.9){
         if(ropEst3()==1){
           paste("The  grey histogram is the ",distname3()," LTD distribution ",
-                "the green histogram is of the bootstrap estimate ROPs and the red histogram ",
-                "is of the normal estimate ROPs for the 100 samples. The true ROP at ",
-                round(TruROP3(),1)," is marked by the black line, the mean normal ROP at ",
-                round(mean(normROP3()),1)," is marked by the red line, and the mean ",
-                "bootstrap ROP at ",round(mean(bootROP3()),1)," is marked by the green line. ",
-                "The normal ROP is ",mean(diffnormTru3()),"% from the true and the bootstrap ",
-                "ROP is ",mean(diffbootTru3()),"% from the true.",sep = "")
+          "the green histogram is of the bootstrap estimate ROPs and the red histogram ",
+          "is of the normal estimate ROPs for the 100 samples. The true ROP at ",
+          round(TruROP3(),1)," is marked by the black line, the mean normal ROP at ",
+          round(mean(normROP3()),1)," is marked by the red line, and the mean ",
+          "bootstrap ROP at ",round(mean(bootROP3()),1)," is marked by the green line. ",
+          "The normal ROP is ",mean(diffnormTru3()),"% from the true and the bootstrap ",
+          "ROP is ",mean(diffbootTru3()),"% from the true.",sep = "")
         }else{
           paste("The  grey histogram is the ",distname3()," LTD distribution ",
-                "the blue histogram is of the gamma estimate ROPs and the green histogram ",
-                "is of the bootstrap estimate ROPs for the 100 samples. The true ROP at ",
-                round(TruROP3(),1)," is marked by the black line, the gamma ROP at ",
-                round(mean(gammaROP3()),1)," is marked by the blue line, and the bootstrap ",
-                "ROP at ",round(mean(bootROP3()),1)," is marked by the green line. ",
-                "The normal ROP is ",mean(diffgammaTru3()),"% from the true and the ",
-                "bootstrap ROP is ",mean(diffbootTru3()),"% from the true.",sep = "")
+          "the blue histogram is of the gamma estimate ROPs and the green histogram ",
+          "is of the bootstrap estimate ROPs for the 100 samples. The true ROP at ",
+          round(TruROP3(),1)," is marked by the black line, the gamma ROP at ",
+          round(mean(gammaROP3()),1)," is marked by the blue line, and the bootstrap ",
+          "ROP at ",round(mean(bootROP3()),1)," is marked by the green line. ",
+          "The gamma ROP is ",mean(diffgammaTru3()),"% from the true and the ",
+          "bootstrap ROP is ",mean(diffbootTru3()),"% from the true.",sep = "")
         }
       }else{
         if(ropEst3()==1){
           paste("The  grey histogram is the ",distname3()," LTD distribution ",
-                "the green histogram is of the Silver (1970) modified bootstrap estimate ",
-                "ROPs and the red histogram is of the Silver (1970) normal estimate ",
-                "ROPs for the 100 samples. The true ROP at ",round(TruROP3(),1)," is marked ",
-                "by the black line, the mean normal ROP at ",round(mean(SMnormROP3()),1),
-                " is marked by the red line, and the mean",
-                " bootstrap ROP at ",round(mean(bootROP3()),1)," is marked by the green line.",
-                " The normal ROP is ",mean(diffSMnormTru3()),"% from the true and the ",
-                "bootstrap ROP is ",mean(diffbootTru3()),"% from the true.",sep = "")
+          "the green histogram is of the Silver (1970) modified bootstrap estimate ",
+          "ROPs and the red histogram is of the Silver (1970) normal estimate ",
+          "ROPs for the 100 samples. The true ROP at ",round(TruROP3(),1)," is marked ",
+          "by the black line, the mean normal ROP at ",round(mean(SMnormROP3()),1),
+          " is marked by the red line, and the mean",
+          " bootstrap ROP at ",round(mean(bootROP3()),1)," is marked by the green line.",
+          " The normal ROP is ",mean(diffSMnormTru3()),"% from the true and the ",
+          "bootstrap ROP is ",mean(diffbootTru3()),"% from the true.",sep = "")
         }else{
           paste("The  grey histogram is the ",distname3()," LTD distribution ",
-                "the green histogram is of the Silver (1970) modified bootstrap estimate ROPs ",
-                "and the blue histogram is of the Silver modified gamma estimate ROPs for ",
-                "the 100 samples. The true ROP at",round(TruROP3(),1)," is marked by the ",
-                "black line, the gamma ROP at ",round(mean(SMgammaROP3()),1)," is marked by ",
-                "the blue line, and the bootstrap ROP at ",round(mean(bootROP3()),1),
-                " is marked by the green line. ",
-                "The gamma ROP is ",mean(diffSMgammaTru3()),"% from the true and the bootstrap",
-                " ROP is",mean(diffbootTru3()),"% from the true.",sep = "")
+          "the green histogram is of the Silver (1970) modified bootstrap estimate ROPs ",
+          "and the blue histogram is of the Silver modified gamma estimate ROPs for ",
+          "the 100 samples. The true ROP at",round(TruROP3(),1)," is marked by the ",
+          "black line, the gamma ROP at ",round(mean(SMgammaROP3()),1)," is marked by ",
+          "the blue line, and the bootstrap ROP at ",round(mean(bootROP3()),1),
+          " is marked by the green line. ",
+          "The gamma ROP is ",mean(diffSMgammaTru3()),"% from the true and the bootstrap",
+          " ROP is",mean(diffbootTru3()),"% from the true.",sep = "")
         }
       }
       

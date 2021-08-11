@@ -232,5 +232,319 @@ if(P2>0.9){
   }
 }
 
+# SKU7 LTD example
+
+a7<-read.csv("SKU7LTD.csv")
+sku7<-sort(sample(a7$VAR1,10^6))
+Q<-219
+P2<-0.99
+TS<-Q*(1-P2)
+
+if(P2>0.9){
+  # THE TRADITIONAL METHOD
+  # system.time(es7<-ExpShort(sku7,10^6))
+  diff<-TS-es7
+  # The next two values are the indices for the ES vector on either side of the TS
+  lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
+  hi<-min(which(diff==min(diff[diff>=0]))) # Smallest ES>=TS
+  # Calculate the bootstrap ROP and SS
+  TruROP<-sku7[hi]-(((TS-es7[hi])*(sku7[hi]-sku7[lo]))/
+                      (es7[lo]-es7[hi]))
+  TruSS<-TruROP-mean(sku7)
+}else{
+  # SILVER MODIFICATION TRUE ROP & SS
+  #system.time(smes7<-SMExpShort(sku7,10^6,Q))
+  diff<-TS-smes7
+  # 1. The first condition is when all SMES<TS  
+  if(length(which(diff<0))==0) # This accomodates the case where SMES[1,b]=TS or diff[1]=0
+  {
+    # Calculates the index of the second smallest sku7 sample considering duplicates
+    m0<-max(which(sku7==min(sku7)))+1
+    TruROP<-sku7[1]-(((TS-smes7[1])*(sku7[m0]-sku7[1]))/
+                       (smes7[1]-smes7[m0]))
+  }
+  # 2. The second condition is when resample ES values are such that ES(1)<TS<ES(nX)
+  else 
+  {
+    # The next two values are the indices for the ES vector on either side of the TS
+    lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
+    hi<-min(which(diff==min(diff[diff>=0]))) # Smallest ES>=TS
+    
+    # Calculate the bootstrap ROP and SS
+    smTruROP<-sku7[hi]-(((TS-smes7[hi])*(sku7[hi]-sku7[lo]))/
+                          (smes7[lo]-smes7[hi]))
+    smTruSS<-smTruROP-mean(sku7)
+  }
+}
+
+# SKU9 LTD example
+
+a9<-read.csv("SKU9LTD.csv")
+sku9<-sort(sample(a9$VAR1,10^6))
+Q<-441
+P2<-0.99
+TS<-Q*(1-P2)
+
+if(P2>0.9){
+  # THE TRADITIONAL METHOD
+  # system.time(es9<-ExpShort(sku9,10^6))
+  diff<-TS-es9
+  # The next two values are the indices for the ES vector on either side of the TS
+  lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
+  hi<-min(which(diff==min(diff[diff>=0]))) # Smallest ES>=TS
+  # Calculate the bootstrap ROP and SS
+  TruROP<-sku9[hi]-(((TS-es9[hi])*(sku9[hi]-sku9[lo]))/
+                      (es9[lo]-es9[hi]))
+  TruSS<-TruROP-mean(sku9)
+}else{
+  # SILVER MODIFICATION TRUE ROP & SS
+  # system.time(smes9<-SMExpShort(sku9,10^6,Q))
+  diff<-TS-smes9
+  # 1. The first condition is when all SMES<TS  
+  if(length(which(diff<0))==0) # This accomodates the case where SMES[1,b]=TS or diff[1]=0
+  {
+    # Calculates the index of the second smallest sku9 sample considering duplicates
+    m0<-max(which(sku9==min(sku9)))+1
+    TruROP<-sku9[1]-(((TS-smes9[1])*(sku9[m0]-sku9[1]))/
+                       (smes9[1]-smes9[m0]))
+  }
+  # 2. The second condition is when resample ES values are such that ES(1)<TS<ES(nX)
+  else 
+  {
+    # The next two values are the indices for the ES vector on either side of the TS
+    lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
+    hi<-min(which(diff==min(diff[diff>=0]))) # Smallest ES>=TS
+    
+    # Calculate the bootstrap ROP and SS
+    smTruROP<-sku9[hi]-(((TS-smes9[hi])*(sku9[hi]-sku9[lo]))/
+                          (smes9[lo]-smes9[hi]))
+    smTruSS<-smTruROP-mean(sku9)
+  }
+}
+
+# SKU10 LTD example
+
+a10<-read.csv("SKU10LTD.csv")
+sku10<-sort(sample(a10$VAR1,10^6))
+Q<-1760
+P2<-0.99
+TS<-Q*(1-P2)
+
+if(P2>0.9){
+  # THE TRADITIONAL METHOD
+  # system.time(es10<-ExpShort(sku10,10^6))
+  diff<-TS-es10
+  # The next two values are the indices for the ES vector on either side of the TS
+  lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
+  hi<-min(which(diff==min(diff[diff>=0]))) # Smallest ES>=TS
+  # Calculate the bootstrap ROP and SS
+  TruROP<-sku10[hi]-(((TS-es10[hi])*(sku10[hi]-sku10[lo]))/
+                      (es10[lo]-es10[hi]))
+  TruSS<-TruROP-mean(sku10)
+}else{
+  # SILVER MODIFICATION TRUE ROP & SS
+  # system.time(smes10<-SMExpShort(sku10,10^6,Q))
+  diff<-TS-smes10
+  # 1. The first condition is when all SMES<TS  
+  if(length(which(diff<0))==0) # This accomodates the case where SMES[1,b]=TS or diff[1]=0
+  {
+    # Calculates the index of the second smallest sku10 sample considering duplicates
+    m0<-max(which(sku10==min(sku10)))+1
+    TruROP<-sku10[1]-(((TS-smes10[1])*(sku10[m0]-sku10[1]))/
+                       (smes10[1]-smes10[m0]))
+  }
+  # 2. The second condition is when resample ES values are such that ES(1)<TS<ES(nX)
+  else 
+  {
+    # The next two values are the indices for the ES vector on either side of the TS
+    lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
+    hi<-min(which(diff==min(diff[diff>=0]))) # Smallest ES>=TS
+    
+    # Calculate the bootstrap ROP and SS
+    smTruROP<-sku10[hi]-(((TS-smes10[hi])*(sku10[hi]-sku10[lo]))/
+                          (smes10[lo]-smes10[hi]))
+    smTruSS<-smTruROP-mean(sku10)
+  }
+}
+
+# SKU13 LTD example
+
+a13<-read.csv("SKU13LTD.csv")
+sku13<-sort(sample(a13$VAR1,10^6))
+Q<-2310
+P2<-0.99
+TS<-Q*(1-P2)
+
+if(P2>0.9){
+  # THE TRADITIONAL METHOD
+  # system.time(es13<-ExpShort(sku13,10^6))
+  diff<-TS-es13
+  # The next two values are the indices for the ES vector on either side of the TS
+  lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
+  hi<-min(which(diff==min(diff[diff>=0]))) # Smallest ES>=TS
+  # Calculate the bootstrap ROP and SS
+  TruROP<-sku13[hi]-(((TS-es13[hi])*(sku13[hi]-sku13[lo]))/
+                       (es13[lo]-es13[hi]))
+  TruSS<-TruROP-mean(sku13)
+}else{
+  # SILVER MODIFICATION TRUE ROP & SS
+  # system.time(smes13<-SMExpShort(sku13,10^6,Q))
+  diff<-TS-smes13
+  # 1. The first condition is when all SMES<TS  
+  if(length(which(diff<0))==0) # This accomodates the case where SMES[1,b]=TS or diff[1]=0
+  {
+    # Calculates the index of the second smallest sku13 sample considering duplicates
+    m0<-max(which(sku13==min(sku13)))+1
+    TruROP<-sku13[1]-(((TS-smes13[1])*(sku13[m0]-sku13[1]))/
+                        (smes13[1]-smes13[m0]))
+  }
+  # 2. The second condition is when resample ES values are such that ES(1)<TS<ES(nX)
+  else 
+  {
+    # The next two values are the indices for the ES vector on either side of the TS
+    lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
+    hi<-min(which(diff==min(diff[diff>=0]))) # Smallest ES>=TS
+    
+    # Calculate the bootstrap ROP and SS
+    smTruROP<-sku13[hi]-(((TS-smes13[hi])*(sku13[hi]-sku13[lo]))/
+                           (smes13[lo]-smes13[hi]))
+    smTruSS<-smTruROP-mean(sku13)
+  }
+}
+
+# SKU14 LTD example
+
+a14<-read.csv("SKU14LTD.csv")
+sku14<-sort(sample(a14$VAR1,10^6))
+Q<-20600
+P2<-0.99
+TS<-Q*(1-P2)
+
+if(P2>0.9){
+  # THE TRADITIONAL METHOD
+  # system.time(es14<-ExpShort(sku14,10^6))
+  diff<-TS-es14
+  # The next two values are the indices for the ES vector on either side of the TS
+  lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
+  hi<-min(which(diff==min(diff[diff>=0]))) # Smallest ES>=TS
+  # Calculate the bootstrap ROP and SS
+  TruROP<-sku14[hi]-(((TS-es14[hi])*(sku14[hi]-sku14[lo]))/
+                       (es14[lo]-es14[hi]))
+  TruSS<-TruROP-mean(sku14)
+}else{
+  # SILVER MODIFICATION TRUE ROP & SS
+  # system.time(smes14<-SMExpShort(sku14,10^6,Q))
+  diff<-TS-smes14
+  # 1. The first condition is when all SMES<TS  
+  if(length(which(diff<0))==0) # This accomodates the case where SMES[1,b]=TS or diff[1]=0
+  {
+    # Calculates the index of the second smallest sku14 sample considering duplicates
+    m0<-max(which(sku14==min(sku14)))+1
+    TruROP<-sku14[1]-(((TS-smes14[1])*(sku14[m0]-sku14[1]))/
+                        (smes14[1]-smes14[m0]))
+  }
+  # 2. The second condition is when resample ES values are such that ES(1)<TS<ES(nX)
+  else 
+  {
+    # The next two values are the indices for the ES vector on either side of the TS
+    lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
+    hi<-min(which(diff==min(diff[diff>=0]))) # Smallest ES>=TS
+    
+    # Calculate the bootstrap ROP and SS
+    smTruROP<-sku14[hi]-(((TS-smes14[hi])*(sku14[hi]-sku14[lo]))/
+                           (smes14[lo]-smes14[hi]))
+    smTruSS<-smTruROP-mean(sku14)
+  }
+}
+
+# SKU16 LTD example
+
+a16<-read.csv("SKU16LTD.csv")
+sku16<-sort(sample(a16$VAR1,10^6))
+Q<-709
+P2<-0.99
+TS<-Q*(1-P2)
+
+if(P2>0.9){
+  # THE TRADITIONAL METHOD
+  # system.time(es16<-ExpShort(sku16,10^6))
+  diff<-TS-es16
+  # The next two values are the indices for the ES vector on either side of the TS
+  lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
+  hi<-min(which(diff==min(diff[diff>=0]))) # Smallest ES>=TS
+  # Calculate the bootstrap ROP and SS
+  TruROP<-sku16[hi]-(((TS-es16[hi])*(sku16[hi]-sku16[lo]))/
+                       (es16[lo]-es16[hi]))
+  TruSS<-TruROP-mean(sku16)
+}else{
+  # SILVER MODIFICATION TRUE ROP & SS
+  # system.time(smes16<-SMExpShort(sku16,10^6,Q))
+  diff<-TS-smes16
+  # 1. The first condition is when all SMES<TS  
+  if(length(which(diff<0))==0) # This accomodates the case where SMES[1,b]=TS or diff[1]=0
+  {
+    # Calculates the index of the second smallest sku16 sample considering duplicates
+    m0<-max(which(sku16==min(sku16)))+1
+    TruROP<-sku16[1]-(((TS-smes16[1])*(sku16[m0]-sku16[1]))/
+                        (smes16[1]-smes16[m0]))
+  }
+  # 2. The second condition is when resample ES values are such that ES(1)<TS<ES(nX)
+  else 
+  {
+    # The next two values are the indices for the ES vector on either side of the TS
+    lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
+    hi<-min(which(diff==min(diff[diff>=0]))) # Smallest ES>=TS
+    
+    # Calculate the bootstrap ROP and SS
+    smTruROP<-sku16[hi]-(((TS-smes16[hi])*(sku16[hi]-sku16[lo]))/
+                           (smes16[lo]-smes16[hi]))
+    smTruSS<-smTruROP-mean(sku16)
+  }
+}
+
+# SKU17 LTD example
+
+a17<-read.csv("SKU17LTD.csv")
+sku17<-sort(sample(a17$VAR1,10^6))
+Q<-238
+P2<-0.8
+TS<-Q*(1-P2)
+
+if(P2>0.9){
+  # THE TRADITIONAL METHOD
+  system.time(es17<-ExpShort(sku17,10^6))
+  diff<-TS-es17
+  # The next two values are the indices for the ES vector on either side of the TS
+  lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
+  hi<-min(which(diff==min(diff[diff>=0]))) # Smallest ES>=TS
+  # Calculate the bootstrap ROP and SS
+  TruROP<-sku17[hi]-(((TS-es17[hi])*(sku17[hi]-sku17[lo]))/
+                       (es17[lo]-es17[hi]))
+  TruSS<-TruROP-mean(sku17)
+}else{
+  # SILVER MODIFICATION TRUE ROP & SS
+  # system.time(smes17<-SMExpShort(sku17,10^6,Q))
+  diff<-TS-smes17
+  # 1. The first condition is when all SMES<TS  
+  if(length(which(diff<0))==0) # This accomodates the case where SMES[1,b]=TS or diff[1]=0
+  {
+    # Calculates the index of the second smallest sku17 sample considering duplicates
+    m0<-max(which(sku17==min(sku17)))+1
+    TruROP<-sku17[1]-(((TS-smes17[1])*(sku17[m0]-sku17[1]))/
+                        (smes17[1]-smes17[m0]))
+  }
+  # 2. The second condition is when resample ES values are such that ES(1)<TS<ES(nX)
+  else 
+  {
+    # The next two values are the indices for the ES vector on either side of the TS
+    lo<-max(which(diff==max(diff[diff<0]))) # Smallest ES<TS
+    hi<-min(which(diff==min(diff[diff>=0]))) # Smallest ES>=TS
+    
+    # Calculate the bootstrap ROP and SS
+    smTruROP<-sku17[hi]-(((TS-smes17[hi])*(sku17[hi]-sku17[lo]))/
+                           (smes17[lo]-smes17[hi]))
+    smTruSS<-smTruROP-mean(sku17)
+  }
+}
 
 write.csv(smes3, 'smes3.csv')
